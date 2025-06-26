@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contrada</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="bg-[#0D1B2A] text-white h-screen overflow-hidden flex flex-col">
+  <div id="login-register" class="flex flex-col items-center justify-center grow">
+    <h1 class="text-5xl font-bold mb-8">CONTRADA</h1>
+    <form id="registerForm" class="bg-[#1B263B] p-6 rounded-lg w-80 space-y-4">
+      <h2 class="text-xl font-semibold mb-4">Registrati</h2>
+      <input type="text" id="nome" placeholder="Nome" required class="w-full p-2 rounded text-black" />
+      <input type="text" id="cognome" placeholder="Cognome" required class="w-full p-2 rounded text-black" />
+      <input type="email" id="email" placeholder="Email" required class="w-full p-2 rounded text-black" />
+      <input type="password" id="password" placeholder="Password" required class="w-full p-2 rounded text-black" />
+      <label class="block text-white">Foto profilo (facoltativa)</label>
+      <input type="file" id="profilePic" accept="image/*" class="mb-4" />
+      <button type="submit" class="w-full bg-blue-700 py-2 rounded font-semibold hover:bg-blue-800 transition">Registrati</button>
+    </form>
+    <p class="mt-4 text-sm text-gray-400">Hai già un account? <button id="showLogin" class="underline hover:text-gray-200">Accedi</button></p>
+  </div>
+
+  <div id="loginDiv" class="hidden flex flex-col items-center justify-center grow">
+    <h1 class="text-5xl font-bold mb-8">CONTRADA</h1>
+    <form id="loginForm" class="bg-[#1B263B] p-6 rounded-lg w-80 space-y-4">
+      <h2 class="text-xl font-semibold mb-4">Login</h2>
+      <input type="email" id="loginEmail" placeholder="Email" required class="w-full p-2 rounded text-black" />
+      <input type="password" id="loginPassword" placeholder="Password" required class="w-full p-2 rounded text-black" />
+      <button type="submit" class="w-full bg-blue-700 py-2 rounded font-semibold hover:bg-blue-800 transition">Accedi</button>
+    </form>
+    <p class="mt-4 text-sm text-gray-400">Non hai un account? <button id="showRegister" class="underline hover:text-gray-200">Registrati</button></p>
+  </div>
+
+  <main id="main-ui" class="hidden flex h-full relative grow">
+    <div class="bg-[#1B263B] w-96 p-4 overflow-y-auto z-10">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-white text-lg font-bold">Annunci</h2>
+        <button id="logoutBtn" class="bg-red-600 px-3 py-1 rounded text-white text-sm hover:bg-red-700">Logout</button>
+      </div>
+      <ul id="annunci-list"></ul>
+      <div class="mt-6 border-t pt-4 text-sm text-white">
+        <h3 class="font-bold mb-2">Profilo</h3>
+        <div class="flex items-center gap-2 mb-2">
+          <img id="userPhoto" src="" class="w-10 h-10 rounded-full border-2 border-white" />
+          <div>
+            <div id="userName" class="font-semibold"></div>
+            <div id="userEmail" class="text-xs text-gray-400"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex-1 relative">
+      <div id="map" class="absolute inset-0 z-0"></div>
+      <button id="openModal" class="absolute top-4 right-4 z-10 bg-white text-black px-4 py-2 rounded-xl shadow-lg">Crea</button>
+    </div>
+  </main>
+
+  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-20">
+    <div class="bg-white text-black w-full max-w-md p-6 rounded-lg shadow-lg">
+      <h2 id="modalTitle" class="text-2xl font-bold mb-4">Crea Annuncio</h2>
+      <form id="form">
+         <label class="block mb-1">Tipo di Annuncio</label>
+         <div class="flex gap-2 mb-4" id="tipoButtons">
+         <button type="button" data-value="Segnalazione" class="tipo-btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Segnalazione</button>
+         <button type="button" data-value="Informazione" class="tipo-btn bg-yellow-400 hover:bg-yellow-500 text-black px-3 py-1 rounded">Informazione</button>
+         <button type="button" data-value="Comunità" class="tipo-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Comunità</button>
+   </div>
+<input type="hidden" id="inputTipo" required>
+         <label>Descrizione</label>
+      <textarea id="inputCosa" class="w-full mb-2 p-2 border border-gray-300 rounded" required></textarea>
+       <p class="font-bold text-sm text-black mb-4">
+          Pubblica con la tua posizione o inserisci l'indirizzo e premi su "Usa indirizzo manuale"
+        </p>
+    <label class="block mb-1">Indirizzo</label>
+   <div class="mb-2">
+  <input type="text" id="via" placeholder="Via" class="w-full p-2 border border-gray-300 rounded mb-2" />
+  <input type="text" id="citta" placeholder="Città" class="w-full p-2 border border-gray-300 rounded mb-2" />
+  <input type="text" id="cap" placeholder="CAP" class="w-full p-2 border border-gray-300 rounded" />
+   </div>
+     <button type="button" onclick="usaIndirizzoManuale()" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm mb-4">📍 Usa indirizzo manuale</button>
+
+    <input type="hidden" id="lat">
+    <input type="hidden" id="lon">
+
+   <div class="flex justify-end mt-4">
+  <button type="button" onclick="closeModal()" class="mr-2 px-4 py-2 border rounded">Annulla</button>
+  <button type="submit" class="bg-blue-700 text-white px-4 py-2 rounded">Pubblica</button>
+   </div>
+     </form>
+       
+     <script>
+
+let map, loggedUser = null;
+let annunci = [];
+let markers = [];
+
+
+ // Controlla se c'è un utente già loggato all'avvio
+window.addEventListener("DOMContentLoaded", () => {
+  const storedUser = localStorage.getItem("loggedUser");
+  if (storedUser) {
+    loggedUser = JSON.parse(storedUser);
+    loginDiv.classList.add("hidden");
+    loginRegisterDiv.classList.add("hidden");
+    mainUI.classList.remove("hidden");
+    document.getElementById("userPhoto").src = loggedUser.photoDataUrl || "";
+    document.getElementById("userName").innerText = `${loggedUser.nome} ${loggedUser.cognome}`;
+    document.getElementById("userEmail").innerText = loggedUser.email;
+
+    initMap();
+    caricaAnnunci();
+  }
+});
+
+
+// Inizializza la mappa
+function initMap() {
+  map = L.map("map");
+
+  // Prova a ottenere la posizione dell'utente
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      map.setView([lat, lon], 13); // posizione utente
+    },
+    (error) => {
+      console.warn("Impossibile ottenere la posizione. Uso fallback: Milano.");
+      map.setView([45.4642, 9.19], 13); // fallback: Milano
+    }
+  );
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
+}
+
+
+// Mostra/nascondi login e registrazione
+const loginDiv = document.getElementById("loginDiv");
+const loginRegisterDiv = document.getElementById("login-register");
+const mainUI = document.getElementById("main-ui");
+const showLoginBtn = document.getElementById("showLogin");
+const showRegisterBtn = document.getElementById("showRegister");
+
+showLoginBtn.addEventListener("click", () => {
+  loginRegisterDiv.classList.add("hidden");
+  loginDiv.classList.remove("hidden");
+});
+showRegisterBtn.addEventListener("click", () => {
+  loginDiv.classList.add("hidden");
+  loginRegisterDiv.classList.remove("hidden");
+});
+
+// REGISTRAZIONE con foto profilo facoltativa
+document.getElementById("registerForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const nome = document.getElementById("nome").value.trim();
+  const cognome = document.getElementById("cognome").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const profilePicFile = document.getElementById("profilePic").files[0];
+
+  const users = JSON.parse(localStorage.getItem("users") || "[]");
+  if (users.find(u => u.email === email)) {
+    alert("Email già registrata.");
+    return;
+  }
+
+  // Se c'è file, lo carichiamo come DataURL, altrimenti salviamo senza foto
+  if (profilePicFile) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      users.push({ nome, cognome, email, password, photoDataUrl: reader.result });
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Registrazione completata! Effettua il login.");
+      document.getElementById("registerForm").reset();
+      loginRegisterDiv.classList.add("hidden");
+      loginDiv.classList.remove("hidden");
+    };
+    reader.readAsDataURL(profilePicFile);
+  } else {
+    users.push({ nome, cognome, email, password, photoDataUrl: "" });
+    localStorage.setItem("users", JSON.stringify(users));
+    alert("Registrazione completata! Effettua il login.");
+    document.getElementById("registerForm").reset();
+    loginRegisterDiv.classList.add("hidden");
+    loginDiv.classList.remove("hidden");
+  }
+});
+
+// LOGIN
+document.getElementById("loginForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const users = JSON.parse(localStorage.getItem("users") || "[]");
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) return alert("Credenziali errate o utente non registrato.");
+
+  loggedUser = user;
+  localStorage.setItem("loggedUser", JSON.stringify(loggedUser));
+  loginDiv.classList.add("hidden");
+  loginRegisterDiv.classList.add("hidden");
+  mainUI.classList.remove("hidden");
+
+  document.getElementById("userPhoto").src = loggedUser.photoDataUrl || "";
+  document.getElementById("userName").innerText = `${loggedUser.nome} ${loggedUser.cognome}`;
+  document.getElementById("userEmail").innerText = loggedUser.email;
+
+  initMap();
+  caricaAnnunci();
+});
+
+
+// LOGOUT
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  loggedUser = null;
+  mainUI.classList.add("hidden");
+  loginRegisterDiv.classList.remove("hidden");
+  localStorage.removeItem("loggedUser");
+});
+
+// Apri modale Crea Annuncio
+document.getElementById("openModal").addEventListener("click", () => {
+  document.getElementById("modal").classList.remove("hidden");
+  aggiornaPosizioneNelForm();
+});
+
+// Carica annunci da localStorage
+function caricaAnnunci() {
+  const stored = localStorage.getItem("annunci");
+  annunci = stored ? JSON.parse(stored) : [];
+  aggiornaAnnunci();
+}
+
+   async function usaIndirizzoManuale() {
+  const via = document.getElementById("via").value.trim();
+  const citta = document.getElementById("citta").value.trim();
+  const cap = document.getElementById("cap").value.trim();
+
+  if (!via || !citta || !cap) {
+    alert("Compila tutti i campi: Via, Città e CAP.");
+    return;
+  }
+
+  const indirizzo = `${via}, ${cap} ${citta}`;
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(indirizzo)}`);
+    const data = await response.json();
+    if (data.length > 0) {
+      const risultato = data[0];
+      document.getElementById("lat").value = risultato.lat;
+      document.getElementById("lon").value = risultato.lon;
+      alert("Indirizzo convertito in posizione con successo!");
+    } else {
+      alert("Indirizzo non trovato.");
+    }
+  } catch {
+    alert("Errore durante la ricerca dell'indirizzo.");
+  }
+}
+
+
+// Gestione selezione tipo annuncio tramite pulsanti
+document.querySelectorAll(".tipo-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const value = btn.dataset.value;
+    document.getElementById("inputTipo").value = value;
+
+    // evidenzia bottone attivo
+    document.querySelectorAll(".tipo-btn").forEach(b => b.classList.remove("ring", "ring-2", "ring-offset-2"));
+    btn.classList.add("ring", "ring-2", "ring-offset-2");
+  });
+});
+
+// Aggiorna lista annunci e markers sulla mappa
+function aggiornaAnnunci() {
+  const list = document.getElementById("annunci-list");
+  list.innerHTML = "";
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  annunci.forEach(annuncio => {
+    aggiungiAnnuncioUI(annuncio);
+  });
+}
+
+// Crea bottoni reazioni e gestisce stato (like/dislike, toggle e rimozione)
+function creaBottoniReazioni(annuncio, container) {
+  const tipo = annuncio.tipo || "Segnalazione";
+  const id = annuncio.id;
+  const reazioni = annuncio.reazioni || {};
+  const reazioneUtente = reazioni[loggedUser.email] || null;
+
+  const labels = {
+    Segnalazione: ["Concordo", "Non concordo"],
+    Informazione: ["Mi piace", "Non mi piace"],
+    Comunità: ["Partecipo", "Non partecipo"]
+  };
+
+  // Creiamo pulsanti
+  const btnLike = document.createElement("button");
+  btnLike.textContent = labels[tipo][0] + (Object.values(reazioni).filter(r => r === "like").length > 0 ? ` (${Object.values(reazioni).filter(r => r === "like").length})` : "");
+  btnLike.className = "mr-2 px-2 py-1 rounded " + (reazioneUtente === "like" ? "bg-green-600" : "bg-gray-600");
+
+  const btnDislike = document.createElement("button");
+  btnDislike.textContent = labels[tipo][1] + (Object.values(reazioni).filter(r => r === "dislike").length > 0 ? ` (${Object.values(reazioni).filter(r => r === "dislike").length})` : "");
+  btnDislike.className = "px-2 py-1 rounded " + (reazioneUtente === "dislike" ? "bg-red-600" : "bg-gray-600");
+
+  // Gestione click bottone Like
+  btnLike.addEventListener("click", () => {
+    if (reazioneUtente === "like") {
+      // rimuovi reazione
+      delete annuncio.reazioni[loggedUser.email];
+    } else {
+      annuncio.reazioni[loggedUser.email] = "like";
+    }
+    salvaAggiornaAnnunci();
+  });
+
+  // Gestione click bottone Dislike
+  btnDislike.addEventListener("click", () => {
+    if (reazioneUtente === "dislike") {
+      delete annuncio.reazioni[loggedUser.email];
+    } else {
+      annuncio.reazioni[loggedUser.email] = "dislike";
+    }
+    salvaAggiornaAnnunci();
+  });
+
+  container.appendChild(btnLike);
+  container.appendChild(btnDislike);
+}
+
+// Salva e aggiorna localStorage e UI
+function salvaAggiornaAnnunci() {
+  localStorage.setItem("annunci", JSON.stringify(annunci));
+  aggiornaAnnunci();
+}
+
+// Aggiunge singolo annuncio nella lista e sulla mappa
+function aggiungiAnnuncioUI(annuncio) {
+  const list = document.getElementById("annunci-list");
+
+  const li = document.createElement("li");
+  li.className = "mb-4 bg-[#162447] p-3 rounded";
+
+  const title = document.createElement("div");
+  title.textContent = annuncio.tipo;
+
+  let bgColor = "";
+  switch (annuncio.tipo) {
+  case "Segnalazione":
+    bgColor = "bg-red-600 text-white";
+    break;
+  case "Informazione":
+    bgColor = "bg-yellow-400 text-black";
+    break;
+  case "Comunità":
+    bgColor = "bg-green-600 text-white";
+    break;
+  default:
+    bgColor = "bg-gray-500 text-white";
+ }
+
+title.className = `inline-block font-bold text-sm px-2 py-1 rounded ${bgColor} mb-2`;
+
+  const desc = document.createElement("p");
+  desc.textContent = annuncio.cosa;
+
+  const info = document.createElement("small");
+  info.className = "block text-gray-400 mt-1";
+  info.textContent = `Da ${annuncio.autore} alle ${new Date(annuncio.data).toLocaleString()}`;
+
+  li.appendChild(title);
+  li.appendChild(desc);
+  li.appendChild(info);
+
+  // Bottone elimina annuncio se sei l'autore
+  if (loggedUser.email === annuncio.autoreEmail) {
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Elimina";
+    delBtn.className = "text-red-600 ml-2 hover:underline text-sm";
+    delBtn.addEventListener("click", () => {
+      if (confirm("Sei sicuro di voler eliminare questo annuncio?")) {
+        annunci = annunci.filter(a => a.id !== annuncio.id);
+        salvaAggiornaAnnunci();
+      }
+    });
+    li.appendChild(delBtn);
+  }
+
+  // Container reazioni
+  const reazioniDiv = document.createElement("div");
+  reazioniDiv.className = "mt-2";
+  if (!annuncio.reazioni) annuncio.reazioni = {};
+  creaBottoniReazioni(annuncio, reazioniDiv);
+  li.appendChild(reazioniDiv);
+
+  list.appendChild(li);
+
+  // Aggiungi marker sulla mappa
+  if (annuncio.lat && annuncio.lon) {
+    const colore = {
+  "Segnalazione": "red",
+  "Informazione": "yellow",
+  "Comunità": "green"
+}[annuncio.tipo] || "blue";
+
+const marker = L.circleMarker([annuncio.lat, annuncio.lon], {
+  radius: 10,
+  fillColor: colore,
+  color: "#fff",
+  weight: 1,
+  opacity: 1,
+  fillOpacity: 0.8
+}).addTo(map);
+
+marker.bindPopup(`
+  <b>${annuncio.tipo}</b><br/>
+  ${annuncio.cosa}<br/>
+  Da ${annuncio.autore}<br/>
+  <small>${new Date(annuncio.data).toLocaleString()}</small>
+`);
+    markers.push(marker);
+  }
+}
+
+// Aggiorna posizione (lat/lon e indirizzo) nel form con geolocalizzazione
+function aggiornaPosizioneNelForm() {
+  if (!navigator.geolocation) {
+    alert("Geolocalizzazione non supportata dal tuo browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    document.getElementById("lat").value = lat;
+    document.getElementById("lon").value = lon;
+
+    // Reverse geocoding con Nominatim
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+      const data = await response.json();
+      document.getElementById("indirizzo").value = data.display_name || "Indirizzo non disponibile";
+    } catch {
+      document.getElementById("indirizzo").value = "Errore nel recupero indirizzo";
+    }
+  }, (err) => {
+    alert("Errore nel recupero della posizione: " + err.message);
+  });
+}
+
+// Gestione invio form annuncio
+document.getElementById("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const tipo = document.getElementById("inputTipo").value;
+  const cosa = document.getElementById("inputCosa").value.trim();
+  const lat = parseFloat(document.getElementById("lat").value);
+  const lon = parseFloat(document.getElementById("lon").value);
+
+  if (!cosa) return alert("Inserisci la descrizione.");
+  if (!lat || !lon) return alert("Posizione non valida.");
+
+  const nuovoAnnuncio = {
+    id: Date.now(),
+    tipo,
+    cosa,
+    lat,
+    lon,
+    autore: `${loggedUser.nome} ${loggedUser.cognome}`,
+    autoreEmail: loggedUser.email,
+    data: new Date().toISOString(),
+    reazioni: {}
+  };
+
+  annunci.push(nuovoAnnuncio);
+  salvaAggiornaAnnunci();
+
+  document.getElementById("form").reset();
+  closeModal();
+});
+
+// Chiudi modale
+function closeModal() {
+  document.getElementById("modal").classList.add("hidden");
+}
+
+</script>
+</body>
+</html>
